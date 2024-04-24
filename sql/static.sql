@@ -1,0 +1,4 @@
+CREATE OR REPLACE TABLE StaticFileTable(
+    filename VARCHAR(64) NOT NULL PRIMARY KEY,
+    mimetype VARCHAR(64) NOT NULL
+);
