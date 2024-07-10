@@ -6,4 +6,4 @@ CREATE TABLE IF NOT EXISTS PortfolioTable(
     filecount INTEGER     NOT NULL DEFAULT 0,
     passcode  VARCHAR(6)      NULL,
     timestamp DATETIME    NOT NULL DEFAULT current_timestamp
-)
+);

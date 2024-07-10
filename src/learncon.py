@@ -3,6 +3,7 @@ from sanic.response import html, json, file
 
 from util.database import Database
 from typing import List
+import os
 
 bp_content = sanic.Blueprint("learncon_content", url_prefix="/learning_content")
 bp_api = sanic.Blueprint("learncon_api", url_prefix="/learning_content")
@@ -57,13 +58,42 @@ async def learncon_post(request: sanic.Request):
 @bp_api.route("/<article:slug>", methods=["GET", "DELETE", "PATCH"])
 async def learncon_get(request: sanic.Request, article: str):
     async def __get():
-        pass
+        try:
+            with open(f"data/learning_content/{article}.html", 'r') as f:
+                return html(f.read())
+        except FileNotFoundError:
+            return json({
+                "Error": "Article Not Found"
+            }, status=404)
 
     async def __delete():
-        pass
+        if "SOFT-Passcode" not in request.headers.keys():
+            return json({
+                "Error": "Missing Passcode"
+            }, status=400)
+        try:
+            db = Database()
+            post_exists = db.query("DELETE FROM LearnConTable WHERE post_id=:post_id AND passcode=:passcode")[0] > 0
+
+            if not post_exists:
+                return json({
+                    "Error": "Invalid Post ID"
+                })
+
+            return json(status=200)
+        except Exception as E:
+            return json({
+                "Error": str(E)
+            }, status=404)
 
     async def __patch():
-        pass
+        if "SOFT-Passcode" not in request.headers.keys():
+            return json({
+                "Error": "Missing Passcode"
+            }, status=400)
+
+        db = Database()
+        db.query("")
 
     match request.method:
         case "GET":
