@@ -1,5 +1,6 @@
 import sanic
-from sanic.response import html, json. file
+from sanic.response import html, json, file
+from util.database import Database  # Assuming Database is imported correctly
 
 bp_content = sanic.Blueprint("learncon_content", url_prefix="/learning_content")
 bp_api = sanic.Blueprint("learncon_api", url_prefix="/learning_content")
@@ -8,94 +9,83 @@ bp_api = sanic.Blueprint("learncon_api", url_prefix="/learning_content")
 async def learncon_upload(request: sanic.Request):
     async def __get():
         try:
-        filename = request.headers.get("SOFT-Filename")
+            post_id = request.args.get("post_id")
+            
+            db = Database()
+            result = db.query("SELECT * FROM LearnConTable WHERE post_id=:post_id", {"post_id": post_id})
+            
+            if not result:
+                return json({"Error": "Post not found"}, status=404)
+            
+            return json(result[0], status=200)
         
-        if not filename:
-            return json({"Error": "헤더에 누락된 속성이 있음"}, status=400)
-        
-        file_path = f"data/static/{filename}"
-        
-        if not os.path.isfile(file_path):
-            return json({"Error": "게시글이 존재하지 않음"}, status=404)
-        
-        return await file(file_path)
-    
-    except Exception as e:
-        return json({"Error": str(e)}, status=500)
-
-    async def __post():
-    try:
-        if "SOFT-Filename" not in request.headers or "SOFT-Article" not in request.headers:
-            return json({"Error": "헤더에 누락된 속성이 있음"}, status=400)
-        
-        filename = request.headers["SOFT-Filename"]
-        article = request.headers["SOFT-Article"]
-        
-        uploaded_files = request.files.getlist('file')
-        
-        save_path = f"data/static/{filename}"
-        for file in uploaded_files:
-            file.save(save_path + file.name)
-        
-        db = Database()
-        db.query("INSERT INTO StaticFiles (filename, article) VALUES (:filename, :article)", {
-            "filename": filename,
-            "article": article
-        })
-        
-        return json({}, status=201)
-    
-    except Exception as e:
-        return json({"Error": str(e)}, status=500)
+        except Exception as e:
+            return json({"Error": str(e)}, status=500)
 
     async def __delete():
-         try:
-        filename = request.headers.get("SOFT-Filename")
+        try:
+            if "SOFT-Passcode" not in request.headers:
+                return json({"Error": "Missing required header"}, status=400)
+            
+            passcode = request.headers["SOFT-Passcode"]
+            post_id = request.args.get("post_id")
+                    
+            if not passcode:
+                return json({"Error": "Missing Passcode"}, status=400)
+            
+            if not post_id:
+                return json({"Error": "Missing post_id parameter"}, status=400)
+
+            db = Database()
+            result = db.query("DELETE FROM LearnConTable WHERE post_id=:post_id AND passcode=:passcode", {
+                "post_id": post_id,
+                "passcode": passcode
+            })
+            
+            if result > 0:
+                return json({}, status=200)
+            else:
+                return json({"Error": "Post not found"}, status=404)
         
-        if not filename:
-            return json({"Error": "헤더에 누락된 속성이 있음"}, status=400)
-        
-        file_path = f"data/static/{filename}"
-        
-        if not os.path.isfile(file_path):
-            return json({"Error": "파일을 찾지 못함"}, status=404)
-        
-        os.remove(file_path)
-                
-        return json({}, status=200)
-    
-    except Exception as e:
-        return json({"Error": str(e)}, status=500)
+        except Exception as e:
+            return json({"Error": str(e)}, status=500)
 
     async def __patch():
         try:
-        if "SOFT-Filename" not in request.headers or "SOFT-Article" not in request.headers:
-            return json({"Error": "헤더에 누락된 속성이 있음"}, status=400)
+            if "SOFT-Passcode" not in request.headers:
+                return json({"Error": "Missing Passcode"}, status=400)
+            
+            passcode = request.headers["SOFT-Passcode"]
+            post_id = request.args.get("post_id")
+            updated_content = request.body.decode("utf-8")
+            
+            if not passcode:
+                return json({"Error": "Missing Passcode"}, status=400)
+            
+            db = Database()
+            result = db.query("UPDATE LearnConTable SET content=:content WHERE post_id=:post_id AND passcode=:passcode", {
+                "content": updated_content,
+                "post_id": post_id,
+                "passcode": passcode
+            })
+            
+            if result > 0:
+                return json({}, status=200)
+            else:
+                return json({"Error": "Post not found"}, status=404)
         
-        filename = request.headers["SOFT-Filename"]
-        article = request.headers["SOFT-Article"]
-        
-        uploaded_files = request.files.getlist('file')
-        
-        save_path = f"data/static/{filename}"
-        for file in uploaded_files:
-            file.save(save_path + file.name)
-                
-        return json({}, status=200)
-    
-    except Exception as e:
-        return json({"Error": str(e)}, status=500)
+        except Exception as e:
+            return json({"Error": str(e)}, status=500)
 
-    match request.method:
-        case "GET":
-            return await __get()
-        case "POST":
-            return await __post()
-        case "DELETE":
-            return await __delete()
-        case "PATCH":
-            return await __patch()
-        case _:
-            return json({
-                "Error": "Method Not Allowed"
-            }, status=405)
+    if request.method == "GET":
+        return await __get()
+    elif request.method == "POST":
+        # Define __post() function for handling POST requests
+        pass  # Placeholder
+    elif request.method == "DELETE":
+        return await __delete()
+    elif request.method == "PATCH":
+        return await __patch()
+    else:
+        return json({"Error": "Method Not Allowed"}, status=405)
+        
