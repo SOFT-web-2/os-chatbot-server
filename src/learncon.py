@@ -34,7 +34,7 @@ async def learncon_post(request: sanic.Request):
 
             db = Database()
             db.query("INSERT INTO LearnConTable(title, author, content, filecount, passcode) "
-                     "VALUES (:title, :author, :content, :filecount, :passcode) ", {
+                     "  VALUES (:title, :author, :content, :filecount, :passcode) ", {
                          "title": __title,
                          "files": __files,
                          "author": __author,
@@ -42,8 +42,7 @@ async def learncon_post(request: sanic.Request):
                          "content": "\n".join(content),
                      })
             return json({}, status=201)
-        except Exception as E:
-            print(E)
+        except:
             return json({}, status=500)
 
     match request.method:
@@ -65,6 +64,8 @@ async def learncon_get(request: sanic.Request, article: str):
             return json({
                 "Error": "Article Not Found"
             }, status=404)
+        except:
+            return json({}, status=500)
 
     async def __delete():
         if "SOFT-Passcode" not in request.headers.keys():
@@ -73,18 +74,16 @@ async def learncon_get(request: sanic.Request, article: str):
             }, status=400)
         try:
             db = Database()
-            post_exists = db.query("DELETE FROM LearnConTable WHERE post_id=:post_id AND passcode=:passcode")[0] > 0
+            post_exists = len(db.query("DELETE FROM LearnConTable WHERE post_id=:post_id AND passcode=:passcode")) > 0
 
             if not post_exists:
                 return json({
                     "Error": "Invalid Post ID"
-                })
+                }, status=404)
 
-            return json(status=200)
-        except Exception as E:
-            return json({
-                "Error": str(E)
-            }, status=404)
+            return json({}, status=200)
+        except:
+            return json({}, status=500)
 
     async def __patch():
         if "SOFT-Passcode" not in request.headers.keys():
@@ -92,8 +91,19 @@ async def learncon_get(request: sanic.Request, article: str):
                 "Error": "Missing Passcode"
             }, status=400)
 
-        db = Database()
-        db.query("")
+        try:
+            db = Database()
+            post_exists = len(db.query(
+                "UPDATE LearnConTable SET content=:content WHERE post_id=:post_id AND passcode=:passcode")) > 0
+
+            if not post_exists:
+                return json({
+                    "Error": "Invalid Post ID",
+                }, status=404)
+
+            return json({}, status=200)
+        except:
+            return json({}, status=500)
 
     match request.method:
         case "GET":
@@ -108,12 +118,34 @@ async def learncon_get(request: sanic.Request, article: str):
             }, status=405)
 
 
-@bp_api.route("/static", methods=["GET", "POST", "DELETE", "PATCH"])
-async def learncon_upload(request: sanic.Request):
-    async def __get():
-        pass
-
+@bp_api.route("/static/<article:slug>", methods=["POST"])
+async def learncon_post(request: sanic.Request, article: str):
     async def __post():
+        try:
+            db = Database()
+
+            filename = str(db.query("SELECT SEQ FROM sqlite_sequence WHERE name='StaticFileTable'")[0] + 1)
+            db.query("INSERT INTO StaticFileTable (article, mimetype) VALUES (:article, :mimetype)")
+
+            with open(f"data/static/{filename}", "wb") as f:
+                f.write(request.body)
+        except:
+            return json({}, status=500)
+
+        return json({}, status=201)
+
+    match request.method:
+        case "POST":
+            return await __post()
+        case _:
+            return json({
+                "Error": "Method Not Allowed"
+            }, status=405)
+
+
+@bp_api.route("/static/<article:slug>/<num:int>", methods=["GET", "DELETE", "PATCH"])
+async def learncon_static(request: sanic.Request, article: str, num: int):
+    async def __get():
         pass
 
     async def __delete():
@@ -125,8 +157,6 @@ async def learncon_upload(request: sanic.Request):
     match request.method:
         case "GET":
             return await __get()
-        case "POST":
-            return await __post()
         case "DELETE":
             return await __delete()
         case "PATCH":
