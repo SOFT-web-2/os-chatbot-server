@@ -53,12 +53,12 @@ async def learncon_upload(request: sanic.Request):
         filename = request.headers.get("SOFT-Filename")
         
         if not filename:
-            return json({"Error": "Missing filename header"}, status=400)
+            return json({"Error": "헤더에 누락된 속성이 있음"}, status=400)
         
         file_path = f"data/static/{filename}"
         
         if not os.path.isfile(file_path):
-            return json({"Error": "File not found"}, status=404)
+            return json({"Error": "파일을 찾지 못함"}, status=404)
         
         os.remove(file_path)
                 
@@ -70,7 +70,7 @@ async def learncon_upload(request: sanic.Request):
     async def __patch():
         try:
         if "SOFT-Filename" not in request.headers or "SOFT-Article" not in request.headers:
-            return json({"Error": "Missing required headers"}, status=400)
+            return json({"Error": "헤더에 누락된 속성이 있음"}, status=400)
         
         filename = request.headers["SOFT-Filename"]
         article = request.headers["SOFT-Article"]
