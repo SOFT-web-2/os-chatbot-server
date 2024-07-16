@@ -1,10 +1,3 @@
-import sanic
-from sanic.response import html, json, file
-from util.database import Database  # Assuming Database is imported correctly
-
-bp_content = sanic.Blueprint("learncon_content", url_prefix="/learning_content")
-bp_api = sanic.Blueprint("learncon_api", url_prefix="/learning_content")
-
 @bp_api.route("/static", methods=["GET", "POST", "DELETE", "PATCH"])
 async def learncon_upload(request: sanic.Request):
     async def __get():
