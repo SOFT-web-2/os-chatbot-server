@@ -80,7 +80,7 @@ async def learncon_upload(request: sanic.Request):
     if request.method == "GET":
         return await __get()
     elif request.method == "POST":
-        returna await __post()
+        return await __post()
     elif request.method == "DELETE":
         return await __delete()
     elif request.method == "PATCH":
